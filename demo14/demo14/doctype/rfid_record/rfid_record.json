@@ -1,0 +1,232 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:sage_asset_id",
+ "creation": "2024-09-16 23:54:38.631490",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sage_asset_id",
+  "rfid_tagging_id",
+  "rfid_tagging_id_asci",
+  "serial_number",
+  "new_serial_number",
+  "description",
+  "category",
+  "location",
+  "new_location",
+  "column_break_uvae1",
+  "custodian",
+  "purchase_date",
+  "extended_description",
+  "specific_location",
+  "taggable",
+  "status",
+  "section_break_9t1at",
+  "save_time",
+  "last_scanned_by",
+  "column_break_avdra",
+  "last_scanned_time",
+  "is_scanned",
+  "submit_time",
+  "section_break_j1jvk",
+  "remark_for_found_asset",
+  "remark_other",
+  "column_break_rl5rn",
+  "remark_for_not_found_asset",
+  "remark_for_extra_asset",
+  "new_remark"
+ ],
+ "fields": [
+  {
+   "fieldname": "sage_asset_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Sage Asset Id",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "rfid_tagging_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "RFID Tagging Id (hexadecimal)",
+   "unique": 1
+  },
+  {
+   "fieldname": "serial_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "new_serial_number",
+   "fieldtype": "Data",
+   "label": "New Serial Number"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "new_location",
+   "fieldtype": "Data",
+   "label": "New Location"
+  },
+  {
+   "fieldname": "column_break_uvae1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custodian",
+   "fieldtype": "Data",
+   "label": "Custodian"
+  },
+  {
+   "fieldname": "purchase_date",
+   "fieldtype": "Data",
+   "label": "Purchase Date"
+  },
+  {
+   "fieldname": "extended_description",
+   "fieldtype": "Small Text",
+   "label": "Extended Description"
+  },
+  {
+   "fieldname": "specific_location",
+   "fieldtype": "Data",
+   "label": "Specific Location"
+  },
+  {
+   "fieldname": "taggable",
+   "fieldtype": "Data",
+   "label": "Taggable"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "section_break_9t1at",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "save_time",
+   "fieldtype": "Datetime",
+   "label": "Save Time"
+  },
+  {
+   "fieldname": "last_scanned_by",
+   "fieldtype": "Data",
+   "label": "Last Scanned By"
+  },
+  {
+   "fieldname": "column_break_avdra",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_scanned_time",
+   "fieldtype": "Datetime",
+   "label": "Last Scanned Time"
+  },
+  {
+   "fieldname": "submit_time",
+   "fieldtype": "Datetime",
+   "label": "Submit Time"
+  },
+  {
+   "fieldname": "section_break_j1jvk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remark_for_found_asset",
+   "fieldtype": "Link",
+   "label": "Remark For Found Asset",
+   "options": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remark_other",
+   "fieldtype": "Small Text",
+   "label": "Remark (Other)",
+   "options": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rl5rn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remark_for_not_found_asset",
+   "fieldtype": "Link",
+   "label": "Remark For Not Found Asset",
+   "options": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remark_for_extra_asset",
+   "fieldtype": "Link",
+   "label": "Remark For Extra Asset",
+   "options": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "new_remark",
+   "fieldtype": "Text",
+   "label": "New Remark"
+  },
+  {
+   "fieldname": "rfid_tagging_id_asci",
+   "fieldtype": "Data",
+   "label": "RFID Tagging ID (ASCI)"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_scanned",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Scanned"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-11-21 12:45:55.820626",
+ "modified_by": "Administrator",
+ "module": "Demo14",
+ "name": "RFID Record",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "sage_asset_id"
+}
