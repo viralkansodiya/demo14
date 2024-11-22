@@ -239,23 +239,29 @@ def save_after_scanning():
                 return 
             if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid")}):
                 doc = frappe.get_doc("RFID Record", name)
-                if row.get("remark_for_found_asset"):
-                    doc.remark_for_found_asset = row.get("remark_for_found_asset")
-                if row.get("remark_for_not_found_asset"):
-                    doc.remark_for_not_found_asset = row.get("remark_for_not_found_asset")
-                if row.get("remark_for_extra_asset"):
-                    doc.remark_for_extra_asset = row.get("remark_for_extra_asset")
-                if row.get("remark_other"):
-                    doc.remark_other = row.get("remark_other")
+                if not doc.submit_time:
+                    if row.get("remark_for_found_asset"):
+                        doc.remark_for_found_asset = row.get("remark_for_found_asset")
+                    if row.get("remark_for_not_found_asset"):
+                        doc.remark_for_not_found_asset = row.get("remark_for_not_found_asset")
+                    if row.get("remark_for_extra_asset"):
+                        doc.remark_for_extra_asset = row.get("remark_for_extra_asset")
+                    if row.get("remark_other"):
+                        doc.remark_other = row.get("remark_other")
 
-                doc.save_time = now()
+                    doc.save_time = now()
 
-                doc.save(ignore_permissions = True)
-                frappe.db.commit()
-                frappe.response["message"]={
-                    "succes_key":1,
-                    "success_message": "Successfully Updated"
-                    }
+                    doc.save(ignore_permissions = True)
+                    frappe.db.commit()
+                    frappe.response["message"]={
+                        "succes_key":1,
+                        "success_message": "Successfully Updated"
+                        }
+                else:
+                    frappe.response["message"]={
+                        "succes_key":0,
+                        "success_message": f"RFID {doc.name} is already submitted" 
+                        }
     except Exception as e:
         frappe.response["message"]={
             "succes_key":0,
@@ -297,23 +303,29 @@ def submit_after_scanning():
                 return 
             if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid")}):
                 doc = frappe.get_doc("RFID Record", name)
-                if row.get("remark_for_found_asset"):
-                    doc.remark_for_found_asset = row.get("remark_for_found_asset")
-                if row.get("remark_for_not_found_asset"):
-                    doc.remark_for_not_found_asset = row.get("remark_for_not_found_asset")
-                if row.get("remark_for_extra_asset"):
-                    doc.remark_for_extra_asset = row.get("remark_for_extra_asset")
-                if row.get("remark_other"):
-                    doc.remark_other = row.get("remark_other")
+                if not doc.submit_time:
+                    if row.get("remark_for_found_asset"):
+                        doc.remark_for_found_asset = row.get("remark_for_found_asset")
+                    if row.get("remark_for_not_found_asset"):
+                        doc.remark_for_not_found_asset = row.get("remark_for_not_found_asset")
+                    if row.get("remark_for_extra_asset"):
+                        doc.remark_for_extra_asset = row.get("remark_for_extra_asset")
+                    if row.get("remark_other"):
+                        doc.remark_other = row.get("remark_other")
 
-                doc.submit_time = now()
+                    doc.submit_time = now()
 
-                doc.save(ignore_permissions = True)
-                frappe.db.commit()
-                frappe.response["message"]={
-                    "succes_key":1,
-                    "success_message": "Successfully Updated"
-                    }
+                    doc.save(ignore_permissions = True)
+                    frappe.db.commit()
+                    frappe.response["message"]={
+                        "succes_key":1,
+                        "success_message": "Successfully Updated"
+                        }
+                else: 
+                    frappe.response["message"]={
+                        "succes_key":0,
+                        "success_message": f"RFID {doc.name} is already submitted" 
+                        }
     except Exception as e:
         frappe.response["message"]={
             "succes_key":0,
