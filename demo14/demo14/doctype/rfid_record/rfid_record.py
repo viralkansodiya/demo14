@@ -8,9 +8,11 @@ class RFIDRecord(Document):
 	def validate(self):
 		if not self.last_scanned_time:
 			self.is_scanned = 0
+		else:
+			self.is_scanned = 1
 		if self.is_new():
 			rfid_tag = self.rfid_tagging_id_asci
 
 			hex_value = rfid_tag.encode("utf-8").hex()
 
-			self.rfid_tagging_id = hex_value.replace(" ","")
+			self.rfid_tagging_id = hex_value.replace(" ","").upper()

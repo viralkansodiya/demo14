@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import now
+from frappe.utils import now, flt
 
 @frappe.whitelist(allow_guest=True)
 def get_total_asset():
@@ -44,13 +44,86 @@ def get_total_asset():
 
     return
 
+@frappe.whitelist(allow_guest=True)
+def on_change_of_location_get_asset_details():
+    data = frappe.request.json
+    custodian = data.get("custodian")
+    location = data.get("location")
+    rfid_list = [ row.upper() for row in data.get("rfid_list") ]
+
+    if not custodian:
+        frappe.response["message"]={
+            "success_key":0,
+            "error_msg":"Custodian ID Missing"
+        }
+        return
+
+    current_time = now()
+
+    if not location:
+        frappe.response["message"]={
+            "success_key":0,
+            "error_msg":"arg location missing"
+        }
+        return 
+
+    rfid_data = frappe.db.get_list('RFID Record',
+                filters={
+                    'custodian' : custodian ,
+                    'location' : location
+                },
+                fields=["name", "sage_asset_id", "rfid_tagging_id", "rfid_tagging_id_asci", "location", "custodian", 'last_scanned_time', 'last_scanned_by', 'is_scanned', "submit_time"],
+                ignore_permissions = 1
+            )
+    
+    total_asset = len(rfid_data)
+    final_data = {}
+    final_data.update({"total" : total_asset})
+
+    found_map = {}
+    all_rfid = []
+    not_found = []
+    found = []
+    extra = []
+
+    for row in rfid_data:
+        if row.is_scanned:
+            # found.append(row.get('rfid_tagging_id'))
+            all_rfid.append(row.get('rfid_tagging_id').upper())
+            continue
+        found_map[row.get('rfid_tagging_id')] = row
+        all_rfid.append(row.get('rfid_tagging_id').upper())
+        # if row.get('rfid_tagging_id') not in rfid_list:
+        #     not_found.append(row.get('rfid_tagging_id'))
+
+    for row in rfid_list:
+        if row.upper() in all_rfid:
+            continue
+        # else:
+        #     extra.append(row.upper())
+        
+    final_data.update({"total_found" : len(list(set(found)))})
+    final_data.update({"rfid_found" : list(set(found))})
+    final_data.update({"total_not_found":len(not_found)})
+    final_data.update({"rfid_not_found" : not_found})
+    final_data.update({"total_extra":len(extra)})
+    final_data.update({"extra_rfid" : extra})
+    
+    frappe.response["message"]={
+        "success_key":1,
+        "data":final_data
+    }
+
+    return
+
 
 @frappe.whitelist(allow_guest=True)
 def get_asset_details():
     data = frappe.request.json
     custodian = data.get("custodian")
     location = data.get("location")
-    rfid_list = data.get("rfid_list")
+    rfid_list = [ row.upper() for row in data.get("rfid_list") ]
+    is_scanned = bool(data.get("is_scanned"))
 
     if not custodian:
         frappe.response["message"]={
@@ -70,10 +143,10 @@ def get_asset_details():
 
     rfid_data = frappe.db.get_list('RFID Record',
                 filters={
-                    'custodian' : custodian ,
+                    'custodian' : custodian,
                     'location' : location
                 },
-                fields=["name", "sage_asset_id", "rfid_tagging_id", "rfid_tagging_id_asci", "location", "custodian", 'last_scanned_time', 'last_scanned_by', 'is_scanned'],
+                fields=["name", "sage_asset_id", "rfid_tagging_id", "rfid_tagging_id_asci", "location", "custodian", 'last_scanned_time', 'last_scanned_by', 'is_scanned', "submit_time"],
                 ignore_permissions = 1
             )
 
@@ -96,42 +169,53 @@ def get_asset_details():
         all_rfid.append(row.get('rfid_tagging_id'))
         if row.get('rfid_tagging_id').upper() not in rfid_list:
             not_found.append(row.get('rfid_tagging_id'))
-    
-    
 
     for row in rfid_list:
-        if row.lower() in all_rfid:
-            found.append(row.lower())
+        if row.upper() in all_rfid:
+            found.append(row.upper())
         else:
-            extra.append(row.lower())
+            extra.append(row.upper())
+    final_not_found = []
+    if is_scanned:
+        for row in found:
+            if row:
+                rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.upper()}, "name")
+                last_scanned_time = frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time")
+                submit_time = frappe.db.get_value("RFID Record", rfid_doc, "submit_time")
+                if not last_scanned_time and not submit_time:
+                    frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_by", custodian)
+                    frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_time", current_time)
+                    frappe.db.set_value("RFID Record", rfid_doc, "is_scanned", 1)
+                    frappe.db.commit()      
+    
 
+    
+    final_found = []
     for row in found:
         if row:
-            rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.lower()}, "name")
+            rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.upper()}, "name")
+            last_scanned_time = frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time")
+            submit_time = frappe.db.get_value("RFID Record", rfid_doc, "submit_time")
+            if last_scanned_time:
+                final_found.append(row.upper())
+            if not last_scanned_time and submit_time:
+                final_not_found.append(row.upper())
+    
+    
+    for row in not_found:
+        if row:
+            rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.upper()}, "name")
+            if frappe.db.get_value("RFID Record", rfid_doc, "submit_time"):
+                final_not_found.append(row.upper())
+                continue
             if not frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time"):
-                frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_by", custodian)
-                frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_time", current_time)
-                frappe.db.set_value("RFID Record", rfid_doc, "is_scanned", 1)
-                frappe.db.commit()
-    #         new_found.append(row)
-    #     elif row not in new_not_found:
-    #         new_not_found.append(row)
-            
-    #     for row in not_found:
-    #         rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row}, "name")
-    #         last_scanned_time = frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time")
-    #         if last_scanned_time:
-    #             if row not in new_found:
-    #                 new_found.append(row)
-    #         else:
-    #             if row not in new_not_found:
-    #                 new_not_found.append(row)
-        
-        
-    final_data.update({"total_found" : len(list(set(found)))})
-    final_data.update({"rfid_found" : list(set(found))})
-    final_data.update({"total_not_found":len(not_found)})
-    final_data.update({"rfid_not_found" : not_found})
+                final_not_found.append(row.upper())
+
+    
+    final_data.update({"total_found" : len(list(set(final_found)))})
+    final_data.update({"rfid_found" : list(set(final_found))})
+    final_data.update({"total_not_found":len(final_not_found)})
+    final_data.update({"rfid_not_found" : final_not_found})
     final_data.update({"total_extra":len(extra)})
     final_data.update({"extra_rfid" : extra})
     
@@ -181,9 +265,9 @@ def get_unic_number():
 @frappe.whitelist(allow_guest=True)
 def get_rfid_info():
     data = frappe.request.json
-    rfid = data.get("rfid")
+    rfid = [row.upper() for row in data.get("rfid")]
     conditions = " and rfid_tagging_id in {} ".format(
-                "(" + ", ".join([f'"{l.lower()}"' for l in rfid]) + ")")
+                "(" + ", ".join([f'"{l.upper()}"' for l in rfid]) + ")")
 
     if not rfid:
         frappe.response["message"]={
@@ -238,7 +322,7 @@ def save_after_scanning():
                 "error_message": "Serial No parameter is missing"
                 }
                 return 
-            if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid").lower()}):
+            if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid").upper()}):
                 doc = frappe.get_doc("RFID Record", name)
                 if not doc.submit_time:
                     if row.get("remark_for_found_asset"):
@@ -282,7 +366,7 @@ def submit_after_scanning():
                 "remark_for_found_asset" : ".......remark......",
                 "remark_for_not_found_asset" : ".......remark_for_not_found_asset......",
                 "remark_for_extra_asset" : "..........remark_for_extra_asset....."
-            "remark_other" : ".....remark_other......",
+                "remark_other" : ".....remark_other......",
             }
         ]
     """
@@ -303,7 +387,7 @@ def submit_after_scanning():
                 "success_message": "Serial No parameter is missing"
                 }
                 return 
-            if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid").lower()}):
+            if name := frappe.db.exists("RFID Record", {"serial_number" : row.get("serial_no"), "rfid_tagging_id": row.get("rfid").upper()}):
                 doc = frappe.get_doc("RFID Record", name)
                 if not doc.submit_time:
                     if row.get("remark_for_found_asset"):
@@ -336,12 +420,6 @@ def submit_after_scanning():
             "error_message": e
             }
 
-    
-    
-    
-
-    
- 
 
 
 @frappe.whitelist(allow_guest=True)
@@ -368,7 +446,7 @@ def replace_asset_rfid_code():
         return
 
     if rfid_record := frappe.db.exists("RFID Record", {"serial_number" : serial_no}):
-        name = frappe.db.get_value("RFID Record", {"rfid_tagging_id" : rfid.lower()}, "name")
+        name = frappe.db.get_value("RFID Record", {"rfid_tagging_id" : rfid.upper()}, "name")
 
         old_asset = frappe.get_doc("RFID Record", name)
         old_asset.rfid_tagging_id = ''
@@ -376,8 +454,8 @@ def replace_asset_rfid_code():
         old_asset.save(ignore_permissions=True)
 
         doc = frappe.get_doc("RFID Record", rfid_record)
-        doc.rfid_tagging_id = rfid.lower()
-        doc.rfid_tagging_id_asci = get_asci_code(rfid.lower())
+        doc.rfid_tagging_id = rfid.upper()
+        doc.rfid_tagging_id_asci = get_asci_code(rfid.upper())
         doc.save(ignore_permissions = True)  
         frappe.db.commit()
         frappe.response["message"]={
@@ -405,43 +483,32 @@ def update_items():
         return
 
     serial_no = data.get("serial_no")
-    if not serial_no:
-        frappe.response["message"]={
-            "success_key":0,
-            "error_code": "Parameter serial no is missing"
-        }
-        return
 
-    if rfid := frappe.db.exists("RFID Record", {"rfid_tagging_id":rfid.lower()}):
+    if rfid := frappe.db.exists("RFID Record", {"rfid_tagging_id":rfid.upper()}):
         doc = frappe.get_doc("RFID Record", rfid)
         if doc.serial_number != serial_no:
             doc.new_serial_number = serial_no
-        
-        if data.get("new_remark"):
-            doc.new_remark = data.get("new_remark")
-            
-        if data.get("new_location"):
-            if doc.location != data.get('new_location'):
-                doc.new_location = data.get('new_location')
+    
+        doc.new_remark = data.get("new_remark")
+        # if doc.location != data.get('new_location'):
+        doc.new_location = data.get('new_location')
 
-        if data.get("new_serial_no"):
-            if doc.serial_number != data.get('new_serial_no'):
-                doc.new_serial_number = data.get('new_serial_no')
-        
-        if data.get("remark_for_found_asset") and  data.get("remark_for_found_asset") != "":
-            doc.remark_for_found_asset = data.get("remark_for_found_asset")
+        if doc.serial_number != data.get('new_serial_no'):
+            doc.new_serial_number = data.get('new_serial_no')
 
-        if data.get("remark_for_not_found_asset") and  data.get("remark_for_not_found_asset") != "":
-            doc.remark_for_not_found_asset = data.get("remark_for_not_found_asset")
+        doc.remark_for_found_asset = data.get("remark_for_found_asset")
 
-        if data.get("remark_for_extra_asset") and  data.get("remark_for_extra_asset") != "":
-            doc.remark_for_extra_asset = data.get("remark_for_extra_asset")
+        doc.remark_for_not_found_asset = data.get("remark_for_not_found_asset")
+
+        doc.remark_for_extra_asset = data.get("remark_for_extra_asset")
+    
+        doc.remark_other = data.get("remark_other")
 
         doc.save(ignore_permissions = True)
         frappe.db.commit()
         frappe.response["message"]={
             "success_key":1,
-            "error_code": "Serial No and remark is updated in database successfully"
+            "error_code": "Updated has been completed"
         }
         return
 
@@ -482,16 +549,16 @@ def update_multiple_rfid():
                 }
                 return
 
-            if rfid := frappe.db.exists("RFID Record", {"rfid_tagging_id":row.get('rfid_tagging_id').lower()}):
+            if rfid := frappe.db.exists("RFID Record", {"rfid_tagging_id":row.get('rfid_tagging_id').upper()}):
                 doc = frappe.get_doc("RFID Record", rfid)
                 if not doc.submit_time:
                     for d in fields:
-                        if doc.get(d) in ['new_location', 'new_serial_no']:
+                        if d in ['new_serial_no']:
                             if row.get(d):
-                                if doc.location != row.get(d):
+                                if doc.serial_no != row.get(d):
                                     doc.update({d : row.get(d)})
                         else:
-                            if row.get(d) and row.get(d) != "":
+                            if row.get(d):
                                 doc.update({d : row.get(d)})
                     doc.save(ignore_permissions = True)
                     frappe.db.commit()
@@ -514,8 +581,104 @@ def update_multiple_rfid():
             }
 
         
+@frappe.whitelist(allow_guest=True)
+def lock_all_document():
+    data = frappe.request.json
+    rfid_list = [ row.upper() for row in data.get("rfid_list") ]
+    custodian = data.get("custodian")
+    location = data.get("location")
+
+    if not data.get("custodian"):
+        frappe.response["message"]={
+            "success_key":0,
+            "error_message": "custodian parameter is requiered"
+        }
+        return
+    if not data.get("location"):
+        frappe.response["message"]={
+            "success_key":0,
+            "error_message": "location parameter is requiered"
+        }
+        return
+    # all_rfid_list = frappe.db.get_list("RFID Record", {"custodian" : data.get('custodian'), 'location' : data.get("location") }, pluck="name", ignore_permissions=True)
     
-            
+    updated_record = []
+    
+    rfid_data = frappe.db.get_list('RFID Record',
+                filters={
+                    'custodian' : custodian ,
+                    'location' : location
+                },
+                fields=["name", "sage_asset_id", "rfid_tagging_id", "rfid_tagging_id_asci", "location", "custodian", 'last_scanned_time', 'last_scanned_by', 'is_scanned'],
+                ignore_permissions = 1
+            )
+
+    total_asset = len(rfid_data)
+    final_data = {}
+    final_data.update({"total" : total_asset})
+
+    found_map = {}
+    all_rfid = []
+    not_found = []
+    found = []
+    extra = []
+
+    for row in rfid_data:
+        if row.is_scanned:
+            found.append(row.get('rfid_tagging_id'))
+            all_rfid.append(row.get('rfid_tagging_id'))
+            continue
+        found_map[row.get('rfid_tagging_id')] = row
+        all_rfid.append(row.get('rfid_tagging_id'))
+        if row.get('rfid_tagging_id').upper() not in rfid_list:
+            not_found.append(row.get('rfid_tagging_id'))
+    
+    
+
+    for row in rfid_list:
+        if row.upper() in all_rfid:
+            found.append(row.upper())
+        else:
+            extra.append(row.upper())
+        
+    final_data.update({"total_found" : len(list(set(found)))})
+    final_data.update({"rfid_found" : list(set(found))})
+    final_data.update({"total_not_found":len(not_found)})
+    final_data.update({"rfid_not_found" : not_found})
+    final_data.update({"total_extra":len(extra)})
+    final_data.update({"extra_rfid" : extra})
+
+    for row in final_data.get("rfid_not_found"):
+        if name := frappe.db.exists("RFID Record", {"rfid_tagging_id" : row.upper()}):
+            doc = frappe.get_doc("RFID Record", name)
+            if not doc.remark_for_not_found_asset:
+                frappe.response["message"]={
+                    "success_key":0,
+                    "error_message": f"{row} doesn't have a New remark, Please Update"
+                }
+                return
+            doc.submit_time = now()
+            doc.save(ignore_permissions = True)
+            frappe.db.commit()
+            updated_record.append(row)
+    
+    for row in final_data.get("rfid_found"):
+        if name := frappe.db.exists("RFID Record", {"rfid_tagging_id" : row.upper()}):
+            doc = frappe.get_doc("RFID Record", name)
+            doc.submit_time = now()
+            doc.save(ignore_permissions = True)
+            frappe.db.commit()
+            updated_record.append(row)
+    
+    frappe.response["message"]={
+        "success_key":1,
+        "error_message": f"{len(updated_record)} record has been locked"
+    }
+    return
+
+
+
+    
 
         
 
