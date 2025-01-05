@@ -508,7 +508,7 @@ def update_items():
         frappe.db.commit()
         frappe.response["message"]={
             "success_key":1,
-            "error_code": "Updated has been completed"
+            "error_code": "Update has been completed"
         }
         return
 
@@ -672,7 +672,7 @@ def lock_all_document():
     
     frappe.response["message"]={
         "success_key":1,
-        "error_message": f"{len(updated_record)} record has been locked"
+        "error_message": f"Submitted successfully. {len(updated_record)} records locked"
     }
     return
 
