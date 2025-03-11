@@ -182,6 +182,11 @@ def get_asset_details():
                 rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.upper()}, "name")
                 last_scanned_time = frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time")
                 submit_time = frappe.db.get_value("RFID Record", rfid_doc, "submit_time")
+                remark_for_not_found_asset, remark_other = frappe.db.get_value("RFID Record", rfid_doc, ["remark_for_not_found_asset", "remark_other"])
+                if remark_other and not submit_time:
+                    frappe.db.set_value("RFID Record", rfid_doc, "remark_other", "")
+                if remark_for_not_found_asset and not submit_time:
+                    frappe.db.set_value("RFID Record", rfid_doc, "remark_for_not_found_asset", "")
                 if not last_scanned_time and not submit_time:
                     frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_by", custodian)
                     frappe.db.set_value("RFID Record", rfid_doc, "last_scanned_time", current_time)
@@ -343,7 +348,6 @@ def save_after_scanning():
                         "success_message": "Successfully Updated"
                         }
                 else:
-                    frappe.throw(f"RFID {doc.name} is already submitted" )
                     frappe.response["message"]={
                         "success_key":0,
                         "success_message": f"RFID {doc.name} is already submitted" 
@@ -408,7 +412,6 @@ def submit_after_scanning():
                         "success_message": "Successfully Updated"
                         }
                 else:
-                    frappe.throw(f"RFID {doc.name} is already submitted" )
                     frappe.response["message"]={
                         "success_key":0,
                         "success_message": f"RFID {doc.name} is already submitted" 
@@ -512,9 +515,6 @@ def update_items():
         }
         return
 
-
-    
-    
 def get_asci_code(hex_string):
     ascii_string = bytes.fromhex(hex_string).decode('utf-8')
     return ascii_string
@@ -644,7 +644,7 @@ def lock_all_document():
     final_not_found = []
 
     final_found = []
-    final_found = []
+
     for row in found:
         if row:
             rfid_doc = frappe.db.get_value("RFID Record", {"rfid_tagging_id": row.upper()}, "name")
@@ -668,7 +668,7 @@ def lock_all_document():
                 continue
             if not frappe.db.get_value("RFID Record", rfid_doc, "last_scanned_time"):
                 final_not_found.append(row.upper())
-
+    
     final_data.update({"total_found" : len(list(set(final_found)))})
     final_data.update({"rfid_found" : list(set(final_found))})
     final_data.update({"total_not_found":len(final_not_found)})
@@ -678,25 +678,24 @@ def lock_all_document():
     
     flag = False
     no_remark_flag = False
-
+    unlock_data = []
     for row in final_data.get("rfid_not_found"):
         if name := frappe.db.exists("RFID Record", {"rfid_tagging_id" : row.upper()}):
             doc = frappe.get_doc("RFID Record", name)
             if doc.submit_time:
                 flag = True
-                break
+                continue
+            else :
+                unlock_data.append(row)
             if not doc.remark_for_not_found_asset:
                 no_remark_flag = True
                 break
             doc.submit_time = now()
             doc.save(ignore_permissions = True)
             updated_record.append(row)
-    if flag:
-        frappe.response["message"]={
-            "success_key" : 0,
-            "error_message" : "Data has already been submitted. No resubmission allowed"
-        }
-        return
+    
+
+    
     if no_remark_flag:
         frappe.response["message"]={
             "success_key":0,
@@ -710,12 +709,14 @@ def lock_all_document():
             doc = frappe.get_doc("RFID Record", name)
             if doc.submit_time:
                 found_flag = True
-                break
+                continue
+            else:
+                unlock_data.append(row)
             doc.submit_time = now()
             doc.save(ignore_permissions = True)
             updated_record.append(row)
 
-    if found_flag:
+    if (found_flag or flag) and not unlock_data:
         frappe.response["message"]={
             "success_key" : 0,
             "error_message" : "Data has already been submitted. No resubmission allowed"

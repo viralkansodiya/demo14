@@ -164,7 +164,7 @@
   {
    "fieldname": "remark_other",
    "fieldtype": "Small Text",
-   "label": "Remark (Other)",
+   "label": "Remark For Not Found Asset (Others)",
    "options": "Reason",
    "read_only": 1
   },
@@ -188,7 +188,7 @@
   {
    "fieldname": "new_remark",
    "fieldtype": "Text",
-   "label": "New Remark"
+   "label": "Remark For Found Asset"
   },
   {
    "fieldname": "rfid_tagging_id_asci",
@@ -205,7 +205,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-07 11:42:42.414460",
+ "modified": "2025-01-16 15:38:48.957180",
  "modified_by": "Administrator",
  "module": "Demo14",
  "name": "RFID Record",
