@@ -723,9 +723,12 @@ def lock_all_document():
         }
         return
     frappe.db.commit()
+    from frappe.utils import now_datetime
 
+    current_time = now_datetime().strftime("%d%m%y - %H%M%S")
+    # '241026 - 172512'
     frappe.response["message"]={
         "success_key":1,
-        "error_message": f"Submitted successfully. {len(updated_record)} records locked"
+        "error_message": f"Submitted successfully. {len(updated_record)} records locked - {current_time}"
     }
     return
